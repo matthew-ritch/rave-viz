@@ -65,3 +65,70 @@ void sobel_y2(const cv::Mat* input, cv::Mat* output) {
 void sobel_x2(const cv::Mat* input, cv::Mat* output) {
     cv::Sobel(*input, *output, CV_64F, 2, 0, 1);
 }
+
+void convolve_through_time(const std::vector<cv::Mat>* input_stack, cv::Mat* output, const double* kernel, int kernel_size) {
+    // Check for null pointers
+    if (input_stack == nullptr || output == nullptr || kernel == nullptr) {
+        std::cout << "DEBUG: ERROR - Null pointer passed to convolve1d!" << std::endl;
+        return;
+    }
+    
+    // Check if input is empty
+    if (input_stack->empty()) {
+        std::cout << "DEBUG: ERROR - Empty input stack in convolve1d!" << std::endl;
+        return;
+    }
+    
+    // Get dimensions from the first image in the stack
+    const cv::Mat& first_frame = input_stack->front();
+    int rows = first_frame.rows;
+    int cols = first_frame.cols;
+    int channels = first_frame.channels();
+    int stack_size = input_stack->size();
+    
+    std::cout << "DEBUG: convolve1d - Stack size: " << stack_size << std::endl;
+    std::cout << "DEBUG: convolve1d - Frame size: " << first_frame.size() << ", channels: " << channels << std::endl;
+    
+    // Initialize output if necessary
+    if (output->empty() || output->size() != first_frame.size() || output->type() != first_frame.type()) {
+        std::cout << "DEBUG: Initializing output matrix to match input" << std::endl;
+        *output = cv::Mat::zeros(first_frame.size(), first_frame.type());
+    }
+    
+    try {
+        // For each position in the 2D image
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                // For each color channel
+                for (int ch = 0; ch < channels; ch++) {
+                    double sum = 0.0;
+                    
+                    // Apply kernel through the time dimension (stack)
+                    for (int k = 0; k < kernel_size; k++) {
+                        // Calculate frame index with proper wrapping
+                        int frame_idx = (stack_size + (k - kernel_size/2)) % stack_size;
+                        
+                        // Bounds check (shouldn't be needed with proper modulo, but kept for safety)
+                        if (frame_idx < 0 || frame_idx >= stack_size) {
+                            std::cout << "DEBUG: ERROR - Frame index out of bounds: " << frame_idx << std::endl;
+                            continue;
+                        }
+                        
+                        // Access the frame and apply kernel weight
+                        const cv::Mat& frame = (*input_stack)[frame_idx];
+                        sum += kernel[k] * frame.at<cv::Vec3d>(i, j)[ch];
+                    }
+                    
+                    // Store the result
+                    output->at<cv::Vec3d>(i, j)[ch] = sum;
+                }
+            }
+        }
+    } catch (const cv::Exception& e) {
+        std::cout << "DEBUG: OpenCV exception in convolve1d: " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cout << "DEBUG: Standard exception in convolve1d: " << e.what() << std::endl;
+    } catch (...) {
+        std::cout << "DEBUG: Unknown exception in convolve1d!" << std::endl;
+    }
+}

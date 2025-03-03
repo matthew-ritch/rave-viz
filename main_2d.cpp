@@ -8,8 +8,11 @@
 #include "filters.hpp"
 
 #define MAX_FRAMES 10
-#define MIN_FRAMES 5
+#define MIN_FRAMES 10
 #define N_REPS 3
+#define N_CYCLES 30
+#define SPEED .15
+
 
 typedef struct {
     cv::Mat* frames;
@@ -85,7 +88,7 @@ void process_frame(cv::Mat* frame, cv::Mat* u_t, double* filt) {
     
     for (int k = 0; k < N_REPS; k++) {
         convolve1d(frame, &delta, filt, 3);
-        *u_t += delta;
+        *u_t += SPEED*delta;
         *frame += *u_t;
     }
     
@@ -170,7 +173,7 @@ int main() {
         }
         
         i = (i + 1) % vb.n_frames;
-        j = (j + 1) % (vb.n_frames * 5);
+        j = (j + 1) % (vb.n_frames * N_CYCLES);
         
         char key = cv::waitKey(1);
         if (key == 'q') {
