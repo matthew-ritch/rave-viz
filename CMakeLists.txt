@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Find OpenCV package
-find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc videoio cudaarithm cudafilters)
+find_package(OpenCV REQUIRED )
 
 # Include directories
 include_directories(${OpenCV_INCLUDE_DIRS})

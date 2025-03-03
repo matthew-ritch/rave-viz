@@ -1,8 +1,6 @@
 #include "filters.hpp"
 #include <string.h>
 #include <iostream>
-#include <opencv2/cudafilters.hpp>
-#include <opencv2/cudaarithm.hpp>
 
 void convolve1d(const cv::Mat* input, cv::Mat* output, const double* kernel, int kernel_size) {
     // Check for null pointers
@@ -57,62 +55,6 @@ void convolve1d(const cv::Mat* input, cv::Mat* output, const double* kernel, int
         std::cout << "DEBUG: Standard exception in convolve1d: " << e.what() << std::endl;
     } catch (...) {
         std::cout << "DEBUG: Unknown exception in convolve1d!" << std::endl;
-    }
-}
-
-void convolve1d_gpu(cv::cuda::GpuMat* src, cv::cuda::GpuMat* dst, double* kernel, int kernel_size) {
-    try {
-        // Create a CPU kernel Matrix
-        cv::Mat cpuKernel(1, kernel_size, CV_64FC1);
-        for (int i = 0; i < kernel_size; i++) {
-            cpuKernel.at<double>(0, i) = kernel[i];
-        }
-        
-        // Convert to floating point format compatible with CUDA filters
-        cv::Mat kernelFloat;
-        cpuKernel.convertTo(kernelFloat, CV_32FC1);
-        
-        // Create temporary src/dst if needed to match filter requirements
-        cv::cuda::GpuMat srcFloat, dstFloat;
-        if (src->type() != CV_32FC3) {
-            src->convertTo(srcFloat, CV_32FC3);
-        } else {
-            srcFloat = *src;
-        }
-        
-        // Create a separable filter for each channel
-        cv::Ptr<cv::cuda::Filter> rowFilter = cv::cuda::createSeparableLinearFilter(
-            CV_32FC3,
-            CV_32FC3,
-            kernelFloat,
-            cv::Mat::ones(1, 1, CV_32FC1) // Identity for other dimension
-        );
-        
-        // Apply filter
-        dstFloat.create(src->size(), CV_32FC3);
-        rowFilter->apply(srcFloat, dstFloat);
-        
-        // Convert back to original format if needed
-        if (dst->type() != CV_32FC3) {
-            dstFloat.convertTo(*dst, dst->type());
-        } else {
-            dstFloat.copyTo(*dst);
-        }
-    }
-    catch (const cv::Exception& e) {
-        std::cerr << "CUDA filter error: " << e.what() << std::endl;
-        
-        // Fallback to CPU
-        cv::Mat cpu_src, cpu_dst;
-        src->download(cpu_src);
-        
-        // Initialize dst if needed
-        if (cpu_dst.size() != cpu_src.size() || cpu_dst.type() != cpu_src.type()) {
-            cpu_dst = cv::Mat::zeros(cpu_src.size(), cpu_src.type());
-        }
-        
-        convolve1d(&cpu_src, &cpu_dst, kernel, kernel_size);
-        dst->upload(cpu_dst);
     }
 }
 
