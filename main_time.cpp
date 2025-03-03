@@ -60,7 +60,6 @@ void free_video_buffer(VideoBuffer* vb) {
         return;
     }
     
-    vb->frames.clear();
     vb->u_t.clear();
     vb->n_frames = 0;
 }
