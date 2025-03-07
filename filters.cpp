@@ -136,13 +136,13 @@ void convolve_through_time(const std::vector<cv::Mat>* input_stack, cv::Mat* out
 void convolve_through_time2(const std::vector<cv::Mat>* input_stack, std::vector<cv::Mat>* output_stack, const double* kernel, int kernel_size){
     // Check for null pointers
     if (input_stack == nullptr || output_stack == nullptr || kernel == nullptr) {
-        std::cout << "DEBUG: ERROR - Null pointer passed to convolve1d!" << std::endl;
+        std::cout << "DEBUG: ERROR - Null pointer passed to convolve_through_time2!" << std::endl;
         return;
     }
     
     // Check if input is empty
     if (input_stack->empty()) {
-        std::cout << "DEBUG: ERROR - Empty input stack in convolve1d!" << std::endl;
+        std::cout << "DEBUG: ERROR - Empty input stack in convolve_through_time2!" << std::endl;
         return;
     }
     
@@ -153,13 +153,14 @@ void convolve_through_time2(const std::vector<cv::Mat>* input_stack, std::vector
     int channels = first_frame.channels();
     int stack_size = input_stack->size();
     
-    std::cout << "DEBUG: convolve1d - Stack size: " << stack_size << std::endl;
-    std::cout << "DEBUG: convolve1d - Frame size: " << first_frame.size() << ", channels: " << channels << std::endl;
+    std::cout << "DEBUG: convolve_through_time2 - Stack size: " << stack_size << std::endl;
+    std::cout << "DEBUG: convolve_through_time2 - Frame size: " << first_frame.size() << ", channels: " << channels << std::endl;
     
     // Initialize output if necessary
-    if (output_stack->empty() || output_stack->front().size() != first_frame.size() || output_stack->front().type() != first_frame.type()) {
-        std::cout << "DEBUG: Initializing output matrix to match input" << std::endl;
-        output_stack->clear();
+    if (output_stack->empty() || output_stack->size() != stack_size || 
+        output_stack->front().size() != first_frame.size() || 
+        output_stack->front().type() != first_frame.type()) {
+        std::cout << "DEBUG: Initializing output stack to match input" << std::endl;
         output_stack->resize(stack_size);
         for (int t = 0; t < stack_size; t++) {
             (*output_stack)[t] = cv::Mat::zeros(first_frame.size(), first_frame.type());
@@ -167,41 +168,41 @@ void convolve_through_time2(const std::vector<cv::Mat>* input_stack, std::vector
     }
     
     try {
-        // For each position in the 2D image
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                // For each color channel
-                for (int ch = 0; ch < channels; ch++) {
-                    double sum = 0.0;
-                    // For each layer in the stack
-                    for (int t = 0; t < stack_size; t++) {
-                        // Apply kernel through the time dimension (stack)
+        // Process each output frame in parallel
+        #ifdef USE_OPENMP
+        #pragma omp parallel for
+        #endif
+        for (int t = 0; t < stack_size; t++) {
+            // Pre-calculate frame indices for this time step
+            std::vector<int> frame_indices(kernel_size);
+            for (int k = 0; k < kernel_size; k++) {
+                frame_indices[k] = (t + k - kernel_size/2 + stack_size) % stack_size;
+            }
+            
+            // Process each pixel
+            for (int i = 0; i < rows; i++) {
+                for (int j = 0; j < cols; j++) {
+                    // Process each channel
+                    for (int ch = 0; ch < channels; ch++) {
+                        double sum = 0.0;
+                        
+                        // Apply kernel with pre-calculated indices
                         for (int k = 0; k < kernel_size; k++) {
-                            // Calculate frame index with proper wrapping
-                            int frame_idx = (stack_size + (k - kernel_size/2)) % stack_size;
-                            
-                            // Bounds check (shouldn't be needed with proper modulo, but kept for safety)
-                            if (frame_idx < 0 || frame_idx >= stack_size) {
-                                std::cout << "DEBUG: ERROR - Frame index out of bounds: " << frame_idx << std::endl;
-                                continue;
-                            }
-                            
-                            // Access the frame and apply kernel weight
-                            const cv::Mat& frame = (*input_stack)[frame_idx];
-                            sum += kernel[k] * frame.at<cv::Vec3d>(i, j)[ch];
+                            int frame_idx = frame_indices[k];
+                            sum += kernel[k] * (*input_stack)[frame_idx].at<cv::Vec3d>(i, j)[ch];
                         }
                         
-                        // Store the result
+                        // Store result
                         (*output_stack)[t].at<cv::Vec3d>(i, j)[ch] = sum;
                     }
                 }
             }
         }
     } catch (const cv::Exception& e) {
-        std::cout << "DEBUG: OpenCV exception in convolve1d: " << e.what() << std::endl;
+        std::cout << "DEBUG: OpenCV exception in convolve_through_time2: " << e.what() << std::endl;
     } catch (const std::exception& e) {
-        std::cout << "DEBUG: Standard exception in convolve1d: " << e.what() << std::endl;
+        std::cout << "DEBUG: Standard exception in convolve_through_time2: " << e.what() << std::endl;
     } catch (...) {
-        std::cout << "DEBUG: Unknown exception in convolve1d!" << std::endl;
+        std::cout << "DEBUG: Unknown exception in convolve_through_time2!" << std::endl;
     }
 }

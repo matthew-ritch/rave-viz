@@ -14,17 +14,22 @@ Visuals for walls at parties
     brew install opencv
     ```
 
-3. Update your CPLUS_INCLUDE_PATH to include that install
+3. Install OpenMP
+    ```bash
+    brew install libomp
+    ```
+
+4. Update your CPLUS_INCLUDE_PATH to include that install
     ```bash
     export CPLUS_INCLUDE_PATH="/opt/homebrew/opt/opencv/include/opencv4:$CPLUS_INCLUDE_PATH"
     ```
 
-4. Clone the repository
+5. Clone the repository
     ```bash
     git clone https://github.com/matthew-ritch/rave-viz
     ```
 
-5. Build and run
+6. Build and run
     ```bash
     mkdir build
     cd build

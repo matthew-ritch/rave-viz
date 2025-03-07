@@ -11,7 +11,7 @@
 #define MAX_FRAMES 7
 #define MIN_FRAMES 5
 #define N_REPS 3
-#define N_CYCLES 7
+#define N_CYCLES 20
 #define SPEED .15
 
 #pragma GCC optimize("O3")

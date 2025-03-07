@@ -3,6 +3,7 @@
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/cuda.hpp>
+#include <omp.h>  // Add OpenMP support
 
 void convolve1d(const cv::Mat* input, cv::Mat* output, const double* kernel, int kernel_size);
 void convolve_through_time(const std::vector<cv::Mat>* input_stack, cv::Mat* output, const double* kernel, int kernel_size);
