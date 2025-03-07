@@ -17,7 +17,7 @@ find_package(Threads REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 # Add executable
-add_executable(rav main_time.cpp filters.cpp)
+add_executable(rav main_real_time.cpp filters.cpp)
 
 # Link libraries - use standard threading library instead of OpenMP
 target_link_libraries(rav ${OpenCV_LIBS} ${CMAKE_THREAD_LIBS_INIT})
